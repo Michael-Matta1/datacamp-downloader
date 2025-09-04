@@ -15,6 +15,7 @@ For information about the original tool's features and basic usage, refer to the
 ### Core Compatibility Fix (Already Merged in [PR #84](https://github.com/TRoboto/datacamp-downloader/pull/84))
 Fixed compatibility issues with the current DataCamp API and modernized ChromeDriver setup. This fix was merged into the original repository in [Pull Request #84](https://github.com/TRoboto/datacamp-downloader/pull/84).
 
+---
 ### New Feature: Course Metadata Export
 Added a new `export-courses` command that exports comprehensive metadata about your completed courses to CSV format. The exported data includes:
 
