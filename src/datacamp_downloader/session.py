@@ -62,7 +62,7 @@ class Session:
             if headless:
                 options.add_argument("--headless=new")
 
-        # existing flags...
+
         options.add_argument("--no-first-run")
         options.add_argument("--no-service-autorun")
         options.add_argument("--password-store=basic")
@@ -132,11 +132,10 @@ class Session:
         pre = soup.find("pre")
 
         if pre:
-            page = pre.text  # ✅ grab only the JSON inside <pre>
+            page = pre.text  # grab only the JSON inside <pre>
         else:
             page = page  # maybe raw JSON already
 
-        # Debug
         #print("\n\n[DEBUG get_json cleaned] First 200 chars:\n", page[:200], "\n\n")
 
         return json.loads(page)

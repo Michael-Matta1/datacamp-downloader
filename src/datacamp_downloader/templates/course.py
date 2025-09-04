@@ -18,13 +18,13 @@ class Exercise:
     url: str
 
     def __init__(
-        self,
-        type: TypeEnum,
-        title: str,
-        aggregate_xp: int,
-        number: int,
-        url: str,
-        **kwargs
+            self,
+            type: TypeEnum,
+            title: str,
+            aggregate_xp: int,
+            number: int,
+            url: str,
+            **kwargs
     ) -> None:
         self.type = type
         self.title = title
@@ -51,23 +51,23 @@ class Chapter:
     exercises: List[Exercise]
 
     def __init__(
-        self,
-        id: int,
-        title_meta: str,
-        title: str,
-        description: str,
-        number: int,
-        slug: str,
-        nb_exercises: int,
-        badge_completed_url: str,
-        badge_uncompleted_url: str,
-        last_updated_on: str,
-        slides_link: str,
-        free_preview: Optional[bool],
-        xp: int,
-        number_of_videos: int,
-        exercises: List[Exercise],
-        **kwargs
+            self,
+            id: int,
+            title_meta: str,
+            title: str,
+            description: str,
+            number: int,
+            slug: str,
+            nb_exercises: int,
+            badge_completed_url: str,
+            badge_uncompleted_url: str,
+            last_updated_on: str,
+            slides_link: str,
+            free_preview: Optional[bool],
+            xp: int,
+            number_of_videos: int,
+            exercises: List[Exercise],
+            **kwargs
     ) -> None:
         self.id = id
         self.title_meta = title_meta
@@ -83,14 +83,26 @@ class Chapter:
         self.free_preview = free_preview
         self.xp = xp
         self.number_of_videos = number_of_videos
-        self.exercises = [Exercise(**c) for c in exercises]
+
+        # Handle exercises with error handling
+        self.exercises = []
+        if exercises:
+            for ex_data in exercises:
+                try:
+                    if isinstance(ex_data, dict):
+                        self.exercises.append(Exercise(**ex_data))
+                    else:
+                        self.exercises.append(ex_data)
+                except Exception:
+                    # Skip malformed exercise data
+                    continue
 
 
 class Collaborator:
     avatar_url: str
     full_name: str
 
-    def __init__(self, avatar_url: str, full_name: str) -> None:
+    def __init__(self, avatar_url: str = "", full_name: str = "", **kwargs) -> None:
         self.avatar_url = avatar_url
         self.full_name = full_name
 
@@ -99,7 +111,7 @@ class Dataset:
     asset_url: str
     name: str
 
-    def __init__(self, asset_url: str, name: str) -> None:
+    def __init__(self, asset_url: str = "", name: str = "", **kwargs) -> None:
         self.asset_url = asset_url
         self.name = name
 
@@ -113,14 +125,14 @@ class Instructor:
     instructor_path: str
 
     def __init__(
-        self,
-        id: int,
-        marketing_biography: str,
-        biography: str,
-        avatar_url: str,
-        full_name: str,
-        instructor_path: str,
-        **kwargs
+            self,
+            id: int = 0,
+            marketing_biography: str = "",
+            biography: str = "",
+            avatar_url: str = "",
+            full_name: str = "",
+            instructor_path: str = "",
+            **kwargs
     ) -> None:
         self.id = id
         self.marketing_biography = marketing_biography
@@ -134,7 +146,7 @@ class SharingLinks:
     twitter: str
     facebook: str
 
-    def __init__(self, twitter: str, facebook: str) -> None:
+    def __init__(self, twitter: str = "", facebook: str = "", **kwargs) -> None:
         self.twitter = twitter
         self.facebook = facebook
 
@@ -143,54 +155,207 @@ class Track:
     path: str
     title_with_subtitle: str
 
-    def __init__(self, path: str, title_with_subtitle: str) -> None:
+    def __init__(self, path: str = "", title_with_subtitle: str = "", **kwargs) -> None:
         self.path = path
         self.title_with_subtitle = title_with_subtitle
 
 
-class Course:
-    def __init__(self,
-                 id: int,
-                 title: str,
-                 description: str = "",
-                 slug: str = None,
-                 chapters: List[dict] = None,
-                 datasets: List[dict] = None,
-                 time_needed_in_hours: int = None,
-                 **kwargs) -> None:
-        """
-        Flexible Course constructor that works with the new API.
-        Extra fields are captured by **kwargs so we don't break.
-        """
+class Prerequisite:
+    """Class to handle prerequisite course information"""
+    path: str
+    title: str
 
-        self.id = id
+    def __init__(self, path: str = "", title: str = "", **kwargs) -> None:
+        self.path = path
         self.title = title
-        self.description = description
-        self.slug = slug or str(id)
 
-        # build nested objects safely
-        self.chapters = [Chapter(**c) for c in (chapters or [])]
-        self.datasets = [Dataset(**c) for c in (datasets or [])]
 
-        # support both old/new API keys
-        self.time_needed = kwargs.get("time_needed") or time_needed_in_hours
-        self.xp = kwargs.get("xp", 0)
-        self.difficulty_level = kwargs.get("difficulty_level", None)
-        self.state = kwargs.get("state", "unknown")
+class Course:
+    def __init__(self, **kwargs) -> None:
+        """
+        Robust Course constructor that safely handles API response data.
+        """
+        # Store ALL raw data first for debugging/export
+        self._raw_data = kwargs.copy()
 
-        # optional stuff
+        # Essential fields with safe defaults
+        self.id = kwargs.get("id")
+        self.title = kwargs.get("title", "")
+        self.order = kwargs.get("order", None)
+
+        # Core content fields with safe extraction
+        self.description = kwargs.get("description", "")
         self.short_description = kwargs.get("short_description", "")
-        self.slug = kwargs.get("slug", slug or str(id))
+        self.slug = kwargs.get("slug", str(self.id) if self.id else "")
+        self.programming_language = kwargs.get("programming_language", "")
+        self.difficulty_level = kwargs.get("difficulty_level")
+        self.xp = kwargs.get("xp", 0)
+        self.state = kwargs.get("state", "")
+        self.paid = kwargs.get("paid")
+
+        # Time fields
+        self.time_needed = kwargs.get("time_needed", "")
+        self.time_needed_in_hours = kwargs.get("time_needed_in_hours")
+        self.duration_minutes = kwargs.get("duration_minutes")
+
+        # Classification
+        self.topic_id = kwargs.get("topic_id")
+        self.technology_id = kwargs.get("technology_id")
+        self.content_area = kwargs.get("content_area", "")
+        self.type = kwargs.get("type", "")
+        self.tier = kwargs.get("tier")
+
+        # URLs and media
+        self.link = kwargs.get("link", "")
         self.image_url = kwargs.get("image_url", "")
         self.image_thumbnail_url = kwargs.get("image_thumbnail_url", "")
+        self.original_image_url = kwargs.get("original_image_url", "")
+        self.marketing_video = kwargs.get("marketing_video", "")
+
+        # SEO and marketing
+        self.seo_title = kwargs.get("seo_title", "")
+        self.seo_description = kwargs.get("seo_description", "")
+        self.nb_of_subscriptions = kwargs.get("nb_of_subscriptions", 0)
+        self.external_slug = kwargs.get("external_slug", "")
+
+        # Author info
+        self.author_field = kwargs.get("author_field")
+        self.author_bio = kwargs.get("author_bio")
+        self.author_image = kwargs.get("author_image", "")
+
+        # Dates
         self.last_updated_on = kwargs.get("last_updated_on", "")
-        self.link = kwargs.get("link", "")
-        self.programming_language = kwargs.get("programming_language", "unknown")
+        self.content_updated_at = kwargs.get("content_updated_at", "")
+        self.archived_at = kwargs.get("archived_at")
 
-        # fallback empty lists
-        self.instructors = [Instructor(**c) for c in kwargs.get("instructors", [])]
-        self.collaborators = [Collaborator(**c) for c in kwargs.get("collaborators", [])]
-        self.tracks = [Track(**c) for c in kwargs.get("tracks", [])]
+        # Boolean flags with safe defaults
+        self.mobile_enabled = kwargs.get("mobile_enabled")
+        self.case_study = kwargs.get("case_study")
+        self.private = kwargs.get("private")
+        self.lti_only = kwargs.get("lti_only")
+        self.should_cache = kwargs.get("should_cache")
+        self.hide_openai_branding = kwargs.get("hide_openai_branding")
+        self.is_labeled_as_new = kwargs.get("is_labeled_as_new")
+        self.difficulty_level_hardcoded = kwargs.get("difficulty_level_hardcoded")
+        self.restricted = kwargs.get("restricted")
 
-        # absorb anything else without crashing
-        self.extra = kwargs
+        # Academic/institutional
+        self.university = kwargs.get("university")
+        self.cpe_credits = kwargs.get("cpe_credits")
+        self.content_branding = kwargs.get("content_branding", "")
+
+        # Technical
+        self.runtime_config = kwargs.get("runtime_config", "")
+        self.translated_course_id = kwargs.get("translated_course_id")
+        self.reduced_outline = kwargs.get("reduced_outline")
+
+        # Long description (HTML content)
+        self.long_description = kwargs.get("long_description", "")
+
+        # Build complex nested objects with error handling
+        self.chapters = []
+        chapters_data = kwargs.get("chapters", [])
+        if chapters_data:
+            for ch_data in chapters_data:
+                try:
+                    if isinstance(ch_data, dict):
+                        self.chapters.append(Chapter(**ch_data))
+                    else:
+                        self.chapters.append(ch_data)
+                except Exception as e:
+                    # Log warning but continue
+                    print(f"Warning: Failed to parse chapter data: {e}")
+                    continue
+
+        self.datasets = []
+        datasets_data = kwargs.get("datasets", [])
+        if datasets_data:
+            for ds_data in datasets_data:
+                try:
+                    if isinstance(ds_data, dict):
+                        self.datasets.append(Dataset(**ds_data))
+                    else:
+                        self.datasets.append(ds_data)
+                except Exception:
+                    continue
+
+        self.instructors = []
+        instructors_data = kwargs.get("instructors", [])
+        if instructors_data:
+            for inst_data in instructors_data:
+                try:
+                    if isinstance(inst_data, dict):
+                        self.instructors.append(Instructor(**inst_data))
+                    else:
+                        self.instructors.append(inst_data)
+                except Exception:
+                    continue
+
+        self.collaborators = []
+        collaborators_data = kwargs.get("collaborators", [])
+        if collaborators_data:
+            for collab_data in collaborators_data:
+                try:
+                    if isinstance(collab_data, dict):
+                        self.collaborators.append(Collaborator(**collab_data))
+                    else:
+                        self.collaborators.append(collab_data)
+                except Exception:
+                    continue
+
+        self.tracks = []
+        tracks_data = kwargs.get("tracks", [])
+        if tracks_data:
+            for track_data in tracks_data:
+                try:
+                    if isinstance(track_data, dict):
+                        self.tracks.append(Track(**track_data))
+                    else:
+                        self.tracks.append(track_data)
+                except Exception:
+                    continue
+
+        # Handle prerequisites with proper parsing
+        self.prerequisites = []
+        prerequisites_data = kwargs.get("prerequisites", [])
+        if prerequisites_data:
+            for prereq_data in prerequisites_data:
+                try:
+                    if isinstance(prereq_data, dict):
+                        self.prerequisites.append(Prerequisite(**prereq_data))
+                    else:
+                        self.prerequisites.append(prereq_data)
+                except Exception as e:
+                    print(f"Warning: Failed to parse prerequisite data: {e}")
+                    continue
+
+        # Store remaining array fields as-is with safe defaults
+        self.audio_recorders = kwargs.get("audio_recorders", [])
+        self.industry_ids = kwargs.get("industry_ids", [])
+        self.learning_objectives = kwargs.get("learning_objectives", [])
+        self.course_resources = kwargs.get("course_resources", [])
+        self.restricted_reasons = kwargs.get("restricted_reasons", [])
+
+        # Store complex nested objects safely
+        self.sharing_links = kwargs.get("sharing_links", {})
+        self.private_access = kwargs.get("private_access", {})
+
+        # Store any remaining fields that weren't explicitly handled
+        handled_fields = {
+            'id', 'title', 'description', 'short_description', 'slug', 'programming_language',
+            'difficulty_level', 'xp', 'state', 'paid', 'time_needed', 'time_needed_in_hours',
+            'duration_minutes', 'topic_id', 'technology_id', 'content_area', 'type', 'tier',
+            'link', 'image_url', 'image_thumbnail_url', 'original_image_url', 'marketing_video',
+            'seo_title', 'seo_description', 'nb_of_subscriptions', 'external_slug', 'author_field',
+            'author_bio', 'author_image', 'last_updated_on', 'content_updated_at', 'archived_at',
+            'mobile_enabled', 'case_study', 'private', 'lti_only', 'should_cache',
+            'hide_openai_branding', 'is_labeled_as_new', 'difficulty_level_hardcoded',
+            'restricted', 'university', 'cpe_credits', 'content_branding', 'runtime_config',
+            'translated_course_id', 'reduced_outline', 'long_description', 'chapters',
+            'datasets', 'instructors', 'collaborators', 'tracks', 'prerequisites',
+            'audio_recorders', 'industry_ids', 'learning_objectives', 'course_resources',
+            'restricted_reasons', 'sharing_links', 'private_access'
+        }
+
+        # Store any additional fields we might have missed
+        self.additional_fields = {k: v for k, v in kwargs.items() if k not in handled_fields}

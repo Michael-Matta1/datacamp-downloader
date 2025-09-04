@@ -7,16 +7,16 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     required = fh.read().splitlines()
 
 setup(
-    name="datacamp-downloader",
-        version="3.3",
-    author="Mohammad Al-Fetyani",
-    author_email="m4bh@hotmail.com",
-    description="Download your completed courses on Datacamp easily!",
+    name="datacamp-downloader-michael",
+        version="4.0.0",
+    author="Michael Matta",
+    author_email="111490505+Michael-Matta1@users.noreply.github.com",
+    description="Download your completed courses and their metadata from Datacamp easily!",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/TRoboto/datacamp-downloader",
+    url="https://github.com/Michael-Matta1/datacamp-downloader",
     project_urls={
-        "Bug Tracker": "https://github.com/TRoboto/datacamp-downloader/issues",
+        "Bug Tracker": "https://github.com/Michael-Matta1/datacamp-downloader/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",

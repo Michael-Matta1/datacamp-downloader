@@ -136,7 +136,8 @@ class Datacamp:
                 next_button = self.session.driver.find_element(By.XPATH, '//button[@tabindex="2"]')
             except Exception:
                 # fallback: any submit button in a form
-                next_button = self.session.driver.find_element(By.CSS_SELECTOR, "button[type='submit'], input[type='submit']")
+                next_button = self.session.driver.find_element(By.CSS_SELECTOR,
+                                                               "button[type='submit'], input[type='submit']")
             next_button.click()
         except Exception as e:
             Logger.error(f"Cannot click next/continue button: {e}")
@@ -171,7 +172,9 @@ class Datacamp:
             except Exception as e2:
                 # Last resort: set value via JS
                 try:
-                    self.session.driver.execute_script("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input'));", password_field, password)
+                    self.session.driver.execute_script(
+                        "arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input'));",
+                        password_field, password)
                     Logger.info("Password set via JS")
                 except Exception as e3:
                     Logger.error("Cannot type password into the field. Details:\n" + "\n".join(map(str, [e1, e2, e3])))
@@ -229,7 +232,6 @@ class Datacamp:
             except Exception:
                 pass
             return
-
 
     @animate_wait
     @try_except_request
@@ -294,21 +296,20 @@ class Datacamp:
 
     @login_required
     def download(self, ids, directory, **kwargs):
+        """Enhanced download method that supports all course types"""
         self.overwrite = kwargs.get("overwrite")
+
         if "all-t" in ids:
             if not self.tracks:
-                Logger.error(
-                    "No tracks to download! Maybe run `datacamp tracks` first!"
-                )
+                Logger.error("No tracks to download! Maybe run `datacamp tracks` first!")
                 return
             to_download = self.tracks
         elif "all" in ids:
             if not self.courses:
-                Logger.error(
-                    "No courses to download! Maybe run `datacamp courses` first!"
-                )
+                Logger.error("No courses to download! Maybe run `datacamp courses` first!")
                 return
             to_download = self.courses
+        
         else:
             to_download = []
             for id in ids:
@@ -318,12 +319,15 @@ class Datacamp:
                         Logger.warning(f"Track {id} is not fetched. Ignoring it.")
                         continue
                     to_download.append(track)
+                    
+                    
                 elif id.isnumeric():
                     course = self.get_course_by_order(int(id))
                     if not course:
                         Logger.warning(f"Course {id} is not fetched. Ignoring it.")
                         continue
                     to_download.append(course)
+
 
         if not to_download:
             Logger.error("No courses/tracks to download!")
@@ -346,7 +350,7 @@ class Datacamp:
                 self.download_track(material, path, **kwargs)
 
     def download_normal_exercise(
-        self, exercise: Exercise, path: Path, include_last_attempt: bool = False
+            self, exercise: Exercise, path: Path, include_last_attempt: bool = False
     ):
         save_text(path, str(exercise), self.overwrite)
         if include_last_attempt and exercise.is_python and exercise.last_attempt:
@@ -373,7 +377,7 @@ class Datacamp:
 
     def download_course(self, course: Course, path: Path, index="", **kwargs):
         download_path = path / (
-            index + correct_path(course.slug or course.title.lower().replace(" ", "-"))
+                index + correct_path(course.slug or course.title.lower().replace(" ", "-"))
         )
         if kwargs.get("datasets") and course.datasets:
             for i, dataset in enumerate(course.datasets, 1):
@@ -397,10 +401,10 @@ class Datacamp:
                     overwrite=self.overwrite,
                 )
             if (
-                kwargs.get("exercises")
-                or kwargs.get("videos")
-                or kwargs.get("audios")
-                or kwargs.get("scripts")
+                    kwargs.get("exercises")
+                    or kwargs.get("videos")
+                    or kwargs.get("audios")
+                    or kwargs.get("scripts")
             ):
                 self.download_others(course.id, chapter, cpath, **kwargs)
 
@@ -498,23 +502,28 @@ class Datacamp:
 
     def get_completed_courses(self, refresh=False):
         if self.courses and not refresh:
+            # Ensure existing courses have order if missing
+            for i, course in enumerate(self.courses, 1):
+                if not hasattr(course, 'order') or course.order is None:
+                    course.order = i
             yield from self.courses
             return
 
         self.courses = []
-
         data = self.get_profile_data()
         completed_courses = data["completed_courses"]
-        for course in completed_courses:
-            fetched_course = self.get_course(course["id"])
+
+        for i, course_data in enumerate(completed_courses, 1):
+            fetched_course = self.get_course(course_data["id"])
             if not fetched_course:
                 continue
             self.session.driver.minimize_window()
+
+            # SET THE ORDER ATTRIBUTE
+            fetched_course.order = i
+
             self.courses.append(fetched_course)
             yield fetched_course
-
-        if not self.courses:
-            return []
 
         self.session.save()
 
@@ -527,21 +536,37 @@ class Datacamp:
         return self._get_course(id)
 
     def get_course_by_order(self, order):
+        # First try to find by order attribute
         for course in self.courses:
-            if course.order == order and course.id not in self.not_found_courses:
+            if hasattr(course, 'order') and course.order == order and course.id not in self.not_found_courses:
                 return course
+
+        # Fallback: treat order as index into courses list (1-based)
+        try:
+            if 1 <= order <= len(self.courses):
+                course = self.courses[order - 1]
+                if course.id not in self.not_found_courses:
+                    # Set the order for future use
+                    course.order = order
+                    return course
+        except (IndexError, AttributeError):
+            pass
+
+        return None
 
     @try_except_request
     def get_exercises_last_attempt(self, course_id, chapter_id):
-        data = self.session.get_json(
-            PROGRESS_API.format(course_id=course_id, chapter_id=chapter_id)
-        )
-        if "error" in data:
-            raise ValueError(
-                f"Cannot get exercises for course {course_id}, chapter {chapter_id}."
+        try:
+            data = self.session.get_json(
+                PROGRESS_API.format(course_id=course_id, chapter_id=chapter_id)
             )
-        last_attempt = {e["exercise_id"]: e["last_attempt"] for e in data}
-        return last_attempt
+            if "error" in data:
+                return {}
+            last_attempt = {e["exercise_id"]: e["last_attempt"] for e in data}
+            return last_attempt
+        except Exception:
+            # Return empty dict if progress can't be fetched
+            return {}
 
     def get_track(self, id):
         for track in self.tracks:
@@ -640,29 +665,170 @@ class Datacamp:
 
     @try_except_request
     def _get_course(self, id):
+        """Enhanced course fetching with better error handling"""
         if not id:
             self.not_found_courses.add(id)
             raise ValueError("ID tag not found.")
-        res = self.session.get_json(COURSE_DETAILS_API.format(id=id))
-        if "error" in res:
+
+        try:
+            res = self.session.get_json(COURSE_DETAILS_API.format(id=id))
+
+            # Check for API errors
+            if not res or "error" in res:
+                self.not_found_courses.add(id)
+                Logger.warning(f"Course {id} not found or has errors")
+                return None
+
+            # Validate required fields
+            if not res.get("id"):
+                self.not_found_courses.add(id)
+                Logger.warning(f"Course {id} missing required ID field")
+                return None
+
+            # Create course with error handling
+            try:
+                course = Course(**res)
+                return course
+            except Exception as e:
+                Logger.warning(f"Error creating Course object for {id}: {e}")
+                # Try creating a minimal course object
+                try:
+                    minimal_data = {
+                        'id': res.get('id', id),
+                        'title': res.get('title', f'Course {id}'),
+                        'description': res.get('description', ''),
+                        'chapters': [],
+                        'datasets': [],
+                        'instructors': [],
+                        'collaborators': [],
+                        'tracks': []
+                    }
+                    course = Course(**minimal_data)
+                    course._raw_data = res  # Store original data
+                    return course
+                except Exception as e2:
+                    Logger.error(f"Failed to create minimal course for {id}: {e2}")
+                    self.not_found_courses.add(id)
+                    return None
+
+        except Exception as e:
             self.not_found_courses.add(id)
-            raise ValueError()
+            Logger.warning(f"Network/API error fetching course {id}: {e}")
+            return None
 
-        # Normalize time field
-        time_needed = res.get("time_needed")
-        if not time_needed and res.get("time_needed_in_hours") is not None:
-            time_needed = f"{res['time_needed_in_hours']} hours"
-        elif not time_needed and res.get("duration_minutes") is not None:
-            hours = res["duration_minutes"] / 60
-            time_needed = f"{hours:.1f} hours"
+    def export_completed_courses_csv(self, filepath="completed_courses.csv", refresh=False):
+        """
+        Export completed courses metadata to CSV.
+        """
+        import csv
+        import html
+        import re
 
-        return Course(
-            id=res["id"],
-            title=res["title"],
-            description=res.get("description", ""),
-            slug=res.get("slug"),
-            datasets=res.get("datasets", []),
-            chapters=res.get("chapters", []),
-            time_needed=time_needed,
-        )
+        if refresh:
+            list(self.get_completed_courses(refresh=True))
+        elif not getattr(self, "courses", None):
+            list(self.get_completed_courses(refresh=False))
 
+        if not self.courses:
+            Logger.error("No courses found to export")
+            return
+
+        core_fields = [
+            'id', 'title', 'description', 'short_description', 'slug', 'programming_language',
+            'difficulty_level', 'xp', 'state', 'paid', 'time_needed_in_hours',
+            'duration_minutes', 'topic_id', 'technology_id', 'content_area', 'type',
+            'link', 'image_url', 'last_updated_on', 'nb_of_subscriptions'
+        ]
+
+        computed_fields = [
+            'num_chapters', 'num_exercises', 'num_videos', 'datasets_count',
+            'instructors_names', 'collaborators_names', 'tracks_titles', 'prerequisites_titles'
+        ]
+
+        fieldnames = core_fields + computed_fields
+
+        def clean_for_csv(value):
+            """Clean any value for safe CSV export"""
+            if value is None:
+                return ""
+
+            text = str(value)
+            text = re.sub(r'<[^>]+>', '', text)
+            text = html.unescape(text)
+            text = text.replace('\r\n', ' ').replace('\r', ' ').replace('\n', ' ')
+            text = text.replace('\t', ' ')
+            text = ' '.join(text.split())
+
+            if len(text) > 5000:
+                text = text[:5000] + "..."
+            return text.strip()
+
+        try:
+            with open(filepath, "w", encoding="utf-8", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+                writer.writeheader()
+
+                for course in self.courses:
+                    try:
+                        row = {}
+
+                        # Extract core fields
+                        for field in core_fields:
+                            row[field] = clean_for_csv(getattr(course, field, ""))
+
+                        # Calculate computed fields
+                        try:
+                            chapters = getattr(course, 'chapters', []) or []
+                            row['num_chapters'] = len(chapters)
+                            row['num_exercises'] = sum(getattr(ch, 'nb_exercises', 0) for ch in chapters)
+                            row['num_videos'] = sum(getattr(ch, 'number_of_videos', 0) for ch in chapters)
+                        except Exception:
+                            row['num_chapters'] = "0"
+                            row['num_exercises'] = "0"
+                            row['num_videos'] = "0"
+
+                        try:
+                            datasets = getattr(course, 'datasets', []) or []
+                            row['datasets_count'] = len(datasets)
+                        except Exception:
+                            row['datasets_count'] = "0"
+
+                        # Extract names from nested objects
+                        def extract_names(objects, name_field='full_name'):
+                            if not objects:
+                                return ""
+                            names = []
+                            for obj in objects:
+                                if isinstance(obj, dict):
+                                    name = obj.get(name_field, '')
+                                else:
+                                    name = getattr(obj, name_field, '')
+                                if name:
+                                    names.append(str(name))
+                            return "; ".join(names)
+
+                        row['instructors_names'] = extract_names(getattr(course, 'instructors', []))
+                        row['collaborators_names'] = extract_names(getattr(course, 'collaborators', []))
+                        row['tracks_titles'] = extract_names(getattr(course, 'tracks', []), 'title_with_subtitle')
+
+                        # Extract prerequisites titles
+                        prereq_titles = []
+                        for prereq in getattr(course, 'prerequisites', []):
+                            if isinstance(prereq, dict):
+                                title = prereq.get('title', '')
+                            else:
+                                title = getattr(prereq, 'title', '')
+                            if title:
+                                prereq_titles.append(title)
+                        row['prerequisites_titles'] = "; ".join(prereq_titles)
+
+                        writer.writerow(row)
+
+                    except Exception as e:
+                        Logger.warning(f"Error processing course {getattr(course, 'id', 'unknown')}: {e}")
+                        continue
+
+            Logger.info(f"Successfully exported {len(self.courses)} completed courses to {filepath}")
+
+        except Exception as e:
+            Logger.error(f"Error writing CSV file: {e}")

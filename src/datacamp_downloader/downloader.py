@@ -7,8 +7,14 @@ import typer
 from . import active_session, datacamp
 from .helper import Logger
 from .templates.lang import Language
+import pathlib
 
-__version__ = "3.3.0"
+__version__ = "4.0.0"
+
+from .datacamp_utils import Datacamp
+from .session import Session
+
+session = Session()
 
 
 def version_callback(value: bool):
@@ -18,13 +24,13 @@ def version_callback(value: bool):
 
 
 def main(
-    version: Optional[bool] = typer.Option(
-        None,
-        "--version",
-        callback=version_callback,
-        is_eager=True,
-        help="Show version.",
-    ),
+        version: Optional[bool] = typer.Option(
+            None,
+            "--version",
+            callback=version_callback,
+            is_eager=True,
+            help="Show version.",
+        ),
 ):
     pass
 
@@ -34,8 +40,8 @@ app = typer.Typer(callback=main)
 
 @app.command()
 def login(
-    username: str = typer.Option(..., "-u", "--username", prompt=True),
-    password: str = typer.Option(..., "-p", "--password", prompt=True, hide_input=True),
+        username: str = typer.Option(..., "-u", "--username", prompt=True),
+        password: str = typer.Option(..., "-p", "--password", prompt=True, hide_input=True),
 ):
     """Log in to Datacamp using your username and password."""
     datacamp.login(username, password)
@@ -49,9 +55,9 @@ def set_token(token: str = typer.Argument(...)):
 
 @app.command()
 def tracks(
-    refresh: Optional[bool] = typer.Option(
-        False, "--refresh", "-r", is_flag=True, help="Refresh completed tracks."
-    )
+        refresh: Optional[bool] = typer.Option(
+            False, "--refresh", "-r", is_flag=True, help="Refresh completed tracks."
+        )
 ):
     """List your completed tracks."""
     datacamp.list_completed_tracks(refresh)
@@ -59,88 +65,90 @@ def tracks(
 
 @app.command()
 def courses(
-    refresh: Optional[bool] = typer.Option(
-        False, "--refresh", "-r", is_flag=True, help="Refresh completed courses."
-    )
+        refresh: Optional[bool] = typer.Option(
+            False, "--refresh", "-r", is_flag=True, help="Refresh completed courses."
+        )
 ):
     """List your completed courses."""
     datacamp.list_completed_courses(refresh)
 
 
+
+
 @app.command()
 def download(
-    ids: List[str] = typer.Argument(
-        ...,
-        help="IDs for courses/tracks to download or `all` to download all your completed courses or `all-t` to download all your completed tracks.",
-    ),
-    path: Path = typer.Option(
-        Path(os.getcwd() + "/Datacamp"),
-        "--path",
-        "-p",
-        help="Path to the download directory.",
-        dir_okay=True,
-        file_okay=False,
-    ),
-    slides: Optional[bool] = typer.Option(
-        True,
-        "--slides/--no-slides",
-        help="Download slides.",
-    ),
-    datasets: Optional[bool] = typer.Option(
-        True,
-        "--datasets/--no-datasets",
-        help="Download datasets.",
-    ),
-    videos: Optional[bool] = typer.Option(
-        True,
-        "--videos/--no-videos",
-        help="Download videos.",
-    ),
-    exercises: Optional[bool] = typer.Option(
-        True,
-        "--exercises/--no-exercises",
-        help="Download exercises.",
-    ),
-    subtitles: Optional[List[Language]] = typer.Option(
-        [Language.EN.value],
-        "--subtitles",
-        "-st",
-        help="Choose subtitles to download.",
-        case_sensitive=False,
-    ),
-    audios: Optional[bool] = typer.Option(
-        False,
-        "--audios/--no-audios",
-        help="Download audio files.",
-    ),
-    scripts: Optional[bool] = typer.Option(
-        True,
-        "--scripts/--no-scripts",
-        "--transcript/--no-transcript",
-        show_default=True,
-        help="Download scripts or transcripts.",
-    ),
-    python_file: Optional[bool] = typer.Option(
-        True,
-        "--python-file/--no-python-file",
-        show_default=True,
-        help="Download your own solution as a python file if available.",
-    ),
-    warnings: Optional[bool] = typer.Option(
-        True,
-        "--no-warnings",
-        flag_value=False,
-        is_flag=True,
-        help="Disable warnings.",
-    ),
-    overwrite: Optional[bool] = typer.Option(
-        False,
-        "--overwrite",
-        "-w",
-        flag_value=True,
-        is_flag=True,
-        help="Overwrite files if exist.",
-    ),
+        ids: List[str] = typer.Argument(
+            ...,
+            help="IDs for courses/tracks to download or `all` to download all your completed courses, `all-t` to download all your completed tracks.",
+        ),
+        path: Path = typer.Option(
+            Path(os.getcwd() + "/Datacamp"),
+            "--path",
+            "-p",
+            help="Path to the download directory.",
+            dir_okay=True,
+            file_okay=False,
+        ),
+        slides: Optional[bool] = typer.Option(
+            True,
+            "--slides/--no-slides",
+            help="Download slides.",
+        ),
+        datasets: Optional[bool] = typer.Option(
+            True,
+            "--datasets/--no-datasets",
+            help="Download datasets.",
+        ),
+        videos: Optional[bool] = typer.Option(
+            True,
+            "--videos/--no-videos",
+            help="Download videos.",
+        ),
+        exercises: Optional[bool] = typer.Option(
+            True,
+            "--exercises/--no-exercises",
+            help="Download exercises.",
+        ),
+        subtitles: Optional[List[Language]] = typer.Option(
+            [Language.EN.value],
+            "--subtitles",
+            "-st",
+            help="Choose subtitles to download.",
+            case_sensitive=False,
+        ),
+        audios: Optional[bool] = typer.Option(
+            False,
+            "--audios/--no-audios",
+            help="Download audio files.",
+        ),
+        scripts: Optional[bool] = typer.Option(
+            True,
+            "--scripts/--no-scripts",
+            "--transcript/--no-transcript",
+            show_default=True,
+            help="Download scripts or transcripts.",
+        ),
+        python_file: Optional[bool] = typer.Option(
+            True,
+            "--python-file/--no-python-file",
+            show_default=True,
+            help="Download your own solution as a python file if available.",
+        ),
+        warnings: Optional[bool] = typer.Option(
+            True,
+            "--no-warnings",
+            flag_value=False,
+            is_flag=True,
+            help="Disable warnings.",
+        ),
+        overwrite: Optional[bool] = typer.Option(
+            False,
+            "--overwrite",
+            "-w",
+            flag_value=True,
+            is_flag=True,
+            help="Overwrite files if exist.",
+        ),
 ):
     """Download courses/tracks given their ids.
 
@@ -167,6 +175,32 @@ def download(
 
 
 @app.command()
+def export_courses(
+        output: str = typer.Option("completed_courses.csv", help="Output CSV file"),
+        refresh: bool = typer.Option(False, help="Refresh data from API"),
+):
+    """
+    Export completed courses metadata to a CSV file.
+    """
+    session = Session()
+
+    dc = session.datacamp
+
+    dc.session = session
+
+    # print(f"[DEBUG] loggedin={dc.loggedin}, token={'yes' if dc.token else 'no'}")
+   
+    dc.export_completed_courses_csv(filepath=output, refresh=refresh)
+
+
+
+@app.command()
 def reset():
     """Restart the session."""
     active_session.reset()
+
+
+
+
+if __name__ == "__main__":
+    app()

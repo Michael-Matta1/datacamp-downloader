@@ -63,17 +63,20 @@ def animate_wait(f):
                 print("\rPlease wait " + c, end="", flush=True)
             time.sleep(0.1)
 
-    def wrapper(*args):
+    def wrapper(*args, **kwargs):  
         nonlocal done
         done = False
         t = threading.Thread(target=animate)
         t.daemon = True
         t.start()
-        output = f(*args)
-        done = True
+        try:
+            output = f(*args, **kwargs)   
+        finally:
+            done = True
         return output
 
     return wrapper
+
 
 
 def correct_path(path: str):
