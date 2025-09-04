@@ -342,7 +342,7 @@ class Datacamp:
             if not material:
                 continue
             Logger.info(
-                f"[{i}/{len(to_download)}] Start to download ({material.id}) {material.title}"
+                f"[{i}/{len(to_download)}] Start to download ({material.order}) {material.title}"
             )
             if isinstance(material, Course):
                 self.download_course(material, path, **kwargs)
@@ -821,12 +821,15 @@ class Datacamp:
                             if title:
                                 prereq_titles.append(title)
                         row['prerequisites_titles'] = "; ".join(prereq_titles)
-
+                        
+                        row['id'] = clean_for_csv(getattr(course, 'order', ""))
+                        
                         writer.writerow(row)
 
                     except Exception as e:
                         Logger.warning(f"Error processing course {getattr(course, 'id', 'unknown')}: {e}")
                         continue
+                    
 
             Logger.info(f"Successfully exported {len(self.courses)} completed courses to {filepath}")
 
