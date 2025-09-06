@@ -12,11 +12,12 @@ For information about the original tool's features and basic usage, refer to the
 
 ## What's New in This Fork
 
-### Core Compatibility Fix (Already Merged in [PR #84](https://github.com/TRoboto/datacamp-downloader/pull/84))
+### 1) Core Compatibility Fix (Already Merged in [PR #84](https://github.com/TRoboto/datacamp-downloader/pull/84))
 Fixed compatibility issues with the current DataCamp API and modernized ChromeDriver setup. This fix was merged into the original repository in [Pull Request #84](https://github.com/TRoboto/datacamp-downloader/pull/84).
 
 ---
-### New Feature: Course Metadata Export
+
+### 2) New Feature: Course Metadata Export
 Added a new `export-courses` command that exports comprehensive metadata about your completed courses to CSV format. The exported data includes:
 
 - **Basic Info**: `id`, `title`, `description`, `short_description`, `slug`
@@ -28,7 +29,9 @@ Added a new `export-courses` command that exports comprehensive metadata about y
 - **People**: `instructors_names`, `collaborators_names`
 - **Relationships**: `tracks_titles`, `prerequisites_titles`
 
-### Enhanced Code Architecture
+---
+
+### 3) Enhanced Code Architecture
 Improved the internal structure of the classes, functions, and commands of the codebase with:
 
 - **Robust Course Class**: Enhanced `Course` class constructor that safely handles API response data with comprehensive error handling and fallback mechanisms
@@ -42,21 +45,24 @@ Improved the internal structure of the classes, functions, and commands of the c
 
 **Recommended**: Install in an isolated virtual environment to avoid dependency conflicts:
 
-```bash
-# Create and activate a virtual environment
+### Windows
+```cmd
 python -m venv datacamp-env
-source datacamp-env/bin/activate  # On Windows: datacamp-env\Scripts\activate
+datacamp-env\Scripts\activate
+pip install git+https://github.com/Michael-Matta1/datacamp-downloader.git
+```
 
-# Install the package
+### Linux/macOS
+```bash
+python -m venv datacamp-env
+source datacamp-env/bin/activate
 pip install git+https://github.com/Michael-Matta1/datacamp-downloader.git
 ```
 
 Alternatively, install directly (not recommended):
-
 ```bash
 pip install git+https://github.com/Michael-Matta1/datacamp-downloader.git
 ```
-
 
 ### Autocompletion
 
